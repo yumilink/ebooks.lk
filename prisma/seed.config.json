@@ -1,0 +1,4 @@
+{
+  "name": "ebooks-lk",
+  "seed": "tsx prisma/seed.ts"
+}

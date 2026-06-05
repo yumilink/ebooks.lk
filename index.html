@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ebooks.lk — Start the app</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 48px auto; padding: 0 20px; color: #1c1917; line-height: 1.6; }
+    h1 { font-size: 1.5rem; }
+    code { background: #f5f5f4; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+    .box { background: #fffbeb; border: 1px solid #fcd34d; border-radius: 8px; padding: 16px; margin: 20px 0; }
+    .url { font-size: 1.25rem; font-weight: 600; color: #b45309; }
+    a { color: #b45309; }
+    ol { padding-left: 1.25rem; }
+    li { margin: 8px 0; }
+  </style>
+</head>
+<body>
+  <h1>Ebooks.lk — Next.js app</h1>
+  <p>
+    This project is <strong>not a PHP/XAMPP site</strong>. Apache cannot run it by itself.
+    You must start the Node.js dev server, then open the app on <strong>port 3000</strong>.
+  </p>
+
+  <div class="box">
+    <p><strong>Correct login URL:</strong></p>
+    <p class="url"><a href="http://localhost:3000/login">http://localhost:3000/login</a></p>
+    <p style="margin-top:12px;font-size:0.9rem;color:#57534e;">
+      Not <code>http://localhost/web-projects/ebooks.lk:3000/login</code> — that mixes Apache (port 80)
+      with a path that looks like a port. Use <code>localhost:3000</code> instead.
+    </p>
+  </div>
+
+  <h2>First-time setup</h2>
+  <ol>
+    <li>Install Node.js LTS from <a href="https://nodejs.org/" target="_blank" rel="noopener">nodejs.org</a></li>
+    <li>Open a terminal in this folder</li>
+    <li>Run: <code>npm install</code></li>
+    <li>Copy <code>.env.example</code> to <code>.env</code> and edit secrets</li>
+    <li>Run: <code>npm run db:setup</code></li>
+    <li>Run: <code>npm run dev</code> (or double-click <code>start-dev.bat</code>)</li>
+    <li>Open <a href="http://localhost:3000/login">http://localhost:3000/login</a></li>
+  </ol>
+
+  <h2>Demo accounts</h2>
+  <p>Password for all: <code>changeme123</code></p>
+  <ul>
+    <li>Member: <code>member@ebooks.lk</code></li>
+    <li>Author: <code>author@ebooks.lk</code></li>
+    <li>Admin: <code>admin@ebooks.lk</code></li>
+  </ul>
+</body>
+</html>

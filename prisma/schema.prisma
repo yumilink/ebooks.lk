@@ -1,0 +1,110 @@
+// Ebooks.lk — Library-style borrowing platform
+// SQLite for lightweight file-based deployment
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Run: npm run db:seed  (or npx prisma db seed)
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  AUTHOR
+  MEMBER
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum BorrowStatus {
+  ACTIVE
+  EXPIRED
+}
+
+model User {
+  id                 String             @id @default(cuid())
+  email              String             @unique
+  password           String
+  name               String?
+  role               Role               @default(MEMBER)
+  subscriptionStatus SubscriptionStatus @default(INACTIVE)
+  subscriptionExpiry DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  authoredBooks Book[]         @relation("AuthorBooks")
+  borrowRecords BorrowRecord[]
+  readingLogs   ReadingLog[]
+
+  @@index([role])
+  @@index([subscriptionStatus])
+}
+
+model Book {
+  id            String   @id @default(cuid())
+  title         String
+  isbn          String   @unique
+  description   String?
+  epubFilePath  String
+  coverImageUrl String
+  /// Per-book encryption salt (base64) used for client-side AES-GCM key derivation
+  encryptedKey  String
+  authorId      String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  author        User           @relation("AuthorBooks", fields: [authorId], references: [id], onDelete: Restrict)
+  borrowRecords BorrowRecord[]
+  readingLogs   ReadingLog[]
+
+  @@index([authorId])
+  @@index([createdAt])
+}
+
+model BorrowRecord {
+  id         String       @id @default(cuid())
+  userId     String
+  bookId     String
+  borrowedAt DateTime     @default(now())
+  expiresAt  DateTime
+  status     BorrowStatus @default(ACTIVE)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  /// One borrow record per user per book (updated on re-borrow)
+  @@unique([userId, bookId])
+  @@index([userId, status])
+  @@index([bookId, status])
+  @@index([expiresAt])
+}
+
+model ReadingLog {
+  id                       String   @id @default(cuid())
+  userId                   String
+  bookId                   String
+  totalReadingTimeInSeconds Int     @default(0)
+  lastSyncedAt             DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, bookId])
+  @@index([bookId])
+  @@index([lastSyncedAt])
+}
+
+model SystemSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
