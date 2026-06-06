@@ -4,7 +4,8 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
-  const password = await bcrypt.hash("changeme123", 12);
+  const plainPassword = process.env.SEED_DEMO_PASSWORD ?? "changeme123";
+  const password = await bcrypt.hash(plainPassword, 12);
   const subscriptionExpiry = new Date("2099-12-31");
 
   const userDefaults = {

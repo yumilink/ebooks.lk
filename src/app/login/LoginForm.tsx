@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Alert";
-import { demoAccounts, DEMO_PASSWORD } from "@/lib/demo-accounts";
+import { demoAccounts, getDemoPassword, isDemoLoginEnabled } from "@/lib/demo-accounts";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -48,10 +48,13 @@ export default function LoginForm() {
   }
 
   async function handleDemoLogin(demoEmail: string) {
+    const demoPassword = getDemoPassword();
     setEmail(demoEmail);
-    setPassword(DEMO_PASSWORD);
-    await signInWith(demoEmail, DEMO_PASSWORD);
+    setPassword(demoPassword);
+    await signInWith(demoEmail, demoPassword);
   }
+
+  const showDemoLogin = isDemoLoginEnabled();
 
   return (
     <div className="mx-auto flex max-w-md flex-col justify-center px-4 py-16">
@@ -92,33 +95,36 @@ export default function LoginForm() {
           </Button>
         </form>
 
-        <div className="mt-8 border-t border-stone-100 pt-6">
-          <p className="text-center text-xs font-medium uppercase tracking-wide text-stone-500">
-            Demo accounts
-          </p>
-          <p className="mt-1 text-center text-xs text-stone-400">
-            Password for all: <span className="font-mono">{DEMO_PASSWORD}</span>
-          </p>
-          <div className="mt-4 space-y-2">
-            {demoAccounts.map((account) => (
-              <button
-                key={account.email}
-                type="button"
-                disabled={loading}
-                onClick={() => handleDemoLogin(account.email)}
-                className="flex w-full items-center justify-between rounded-lg border border-stone-200 px-4 py-3 text-left text-sm transition hover:border-amber-300 hover:bg-amber-50 disabled:opacity-50"
-              >
-                <div>
-                  <p className="font-medium text-stone-900">{account.name}</p>
-                  <p className="text-xs text-stone-500">{account.description}</p>
-                </div>
-                <span className="rounded bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-600">
-                  {account.role}
-                </span>
-              </button>
-            ))}
+        {showDemoLogin && (
+          <div className="mt-8 border-t border-stone-100 pt-6">
+            <p className="text-center text-xs font-medium uppercase tracking-wide text-stone-500">
+              Demo accounts (dev only)
+            </p>
+            <p className="mt-1 text-center text-xs text-stone-400">
+              Password from <span className="font-mono">SEED_DEMO_PASSWORD</span> in your local{" "}
+              <span className="font-mono">.env</span>
+            </p>
+            <div className="mt-4 space-y-2">
+              {demoAccounts.map((account) => (
+                <button
+                  key={account.email}
+                  type="button"
+                  disabled={loading}
+                  onClick={() => handleDemoLogin(account.email)}
+                  className="flex w-full items-center justify-between rounded-lg border border-stone-200 px-4 py-3 text-left text-sm transition hover:border-amber-300 hover:bg-amber-50 disabled:opacity-50"
+                >
+                  <div>
+                    <p className="font-medium text-stone-900">{account.name}</p>
+                    <p className="text-xs text-stone-500">{account.description}</p>
+                  </div>
+                  <span className="rounded bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-600">
+                    {account.role}
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         <p className="mt-6 text-center text-sm">
           <Link href="/books" className="text-amber-700 hover:underline">
