@@ -54,7 +54,7 @@ export async function GET(request: Request, context: RouteContext) {
   const end = Math.min(start + CHUNK_SIZE - 1, totalSize - 1);
   const data = await readEpubChunk(book.epubFilePath, start, end);
 
-  return new NextResponse(data, {
+  return new NextResponse(new Uint8Array(data), {
     status: 200,
     headers: {
       "Content-Type": "application/octet-stream",

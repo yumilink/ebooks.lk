@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireSession, isSession, jsonError } from "@/lib/api-auth";
 import { hasActiveSubscription, computeBorrowExpiry } from "@/lib/borrow";
+import { getValidBorrow } from "@/lib/borrow-verify";
 import { deriveStreamHeaders, CHUNK_SIZE } from "@/lib/crypto/server";
 import { getEpubFileSize } from "@/lib/storage";
 

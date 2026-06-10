@@ -114,7 +114,9 @@ export function EpubReader({ bookId, expiresAt, onExpired }: EpubReaderProps) {
       });
 
       if ("serviceWorker" in navigator && "sync" in ServiceWorkerRegistration.prototype) {
-        const reg = await navigator.serviceWorker.ready;
+        const reg = (await navigator.serviceWorker.ready) as ServiceWorkerRegistration & {
+          sync: { register: (tag: string) => Promise<void> };
+        };
         await reg.sync.register("reading-log-sync").catch(() => {
           /* fallback below */
         });
@@ -140,7 +142,7 @@ export function EpubReader({ bookId, expiresAt, onExpired }: EpubReaderProps) {
     };
   }, [bookId]);
 
-  const blockRip = useCallback((e: Event) => {
+  const blockRip = useCallback((e: { preventDefault: () => void }) => {
     e.preventDefault();
   }, []);
 

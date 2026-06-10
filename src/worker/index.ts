@@ -7,6 +7,10 @@
 
 declare const self: ServiceWorkerGlobalScope;
 
+interface SyncEvent extends ExtendableEvent {
+  tag: string;
+}
+
 const DB_NAME = "ebooks-lk-offline";
 const DB_VERSION = 1;
 

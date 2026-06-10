@@ -60,7 +60,8 @@ export async function encryptChunk(
   iv: Uint8Array,
   plaintext: ArrayBuffer
 ): Promise<ArrayBuffer> {
-  return crypto.subtle.encrypt({ name: ALGO, iv }, key, plaintext);
+  const ivBytes = new Uint8Array(iv);
+  return crypto.subtle.encrypt({ name: ALGO, iv: ivBytes }, key, plaintext);
 }
 
 export async function decryptChunk(
@@ -68,7 +69,8 @@ export async function decryptChunk(
   iv: Uint8Array,
   ciphertext: ArrayBuffer
 ): Promise<ArrayBuffer> {
-  return crypto.subtle.decrypt({ name: ALGO, iv }, key, ciphertext);
+  const ivBytes = new Uint8Array(iv);
+  return crypto.subtle.decrypt({ name: ALGO, iv: ivBytes }, key, ciphertext);
 }
 
 export function ivForChunkIndex(ivSeedB64: string, chunkIndex: number): Uint8Array {
