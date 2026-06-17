@@ -17,7 +17,7 @@ type PageProps = { params: Promise<{ bookId: string }> };
 
 export default function ReaderPage({ params }: PageProps) {
   const router = useRouter();
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const [bookId, setBookId] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [bookTitle, setBookTitle] = useState("");
@@ -85,7 +85,7 @@ export default function ReaderPage({ params }: PageProps) {
 
   if (status === "loading" || !bookId) {
     return (
-      <div className="flex h-[calc(100vh-8rem)] items-center justify-center text-stone-500">
+      <div className="flex min-h-screen items-center justify-center text-stone-500">
         Loading reader…
       </div>
     );
@@ -104,7 +104,7 @@ export default function ReaderPage({ params }: PageProps) {
 
   if (loading || !expiresAt) {
     return (
-      <div className="flex h-[calc(100vh-8rem)] flex-col items-center justify-center gap-4 text-stone-500">
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 text-stone-500">
         <p>Preparing encrypted offline copy…</p>
         {downloadProgress > 0 && (
           <div className="w-64">
@@ -122,22 +122,13 @@ export default function ReaderPage({ params }: PageProps) {
   }
 
   return (
-    <div className="fixed inset-x-0 bottom-0 top-[65px] z-30 bg-stone-900">
-      <div className="flex h-10 items-center justify-between border-b border-stone-700 bg-stone-900 px-4">
-        <Link
-          href={`/books/${bookId}`}
-          className="text-xs text-stone-400 hover:text-white"
-        >
-          ← {bookTitle || "Back"}
-        </Link>
-      </div>
-      <div className="h-[calc(100%-2.5rem)]">
-        <EpubReader
-          bookId={bookId}
-          expiresAt={expiresAt}
-          onExpired={() => router.push(`/books/${bookId}`)}
-        />
-      </div>
+    <div className="fixed inset-0 z-30 h-[100dvh]">
+      <EpubReader
+        bookId={bookId}
+        bookTitle={bookTitle}
+        expiresAt={expiresAt}
+        onExpired={() => router.push(`/books/${bookId}`)}
+      />
     </div>
   );
 }

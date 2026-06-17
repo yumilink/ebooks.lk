@@ -11,6 +11,24 @@ body {
   font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
 
+.ereader-container {
+  background: #ffffff;
+  overflow: hidden;
+}
+
+/* epub.js wrappers must fill the measured container */
+.ereader-container .epub-container,
+.ereader-container .epub-view,
+.ereader-container > div {
+  height: 100% !important;
+  background: inherit !important;
+}
+
+.ereader-container iframe {
+  height: 100% !important;
+  background: transparent !important;
+}
+
 .ereader-container * {
   user-select: none !important;
   -webkit-user-select: none !important;

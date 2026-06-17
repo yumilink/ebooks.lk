@@ -87,11 +87,15 @@ model BorrowRecord {
 }
 
 model ReadingLog {
-  id                       String   @id @default(cuid())
-  userId                   String
-  bookId                   String
-  totalReadingTimeInSeconds Int     @default(0)
-  lastSyncedAt             DateTime @default(now())
+  id                        String    @id @default(cuid())
+  userId                    String
+  bookId                    String
+  totalReadingTimeInSeconds Int       @default(0)
+  lastPositionCfi           String?
+  lastReadHref              String?
+  lastReadProgress          Float?
+  lastReadAt                DateTime?
+  lastSyncedAt              DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
