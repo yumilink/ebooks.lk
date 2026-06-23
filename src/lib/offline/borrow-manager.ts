@@ -6,12 +6,14 @@ import {
 } from "@/lib/crypto/client";
 import {
   saveBookMeta,
-  saveEncryptedChunk,
+  saveEncryptedChunksBatch,
   purgeBookFromIDB,
   purgeExpiredBooks,
   getStoredBook,
   getEncryptedChunks,
+  countOfflineChunks,
   type StoredBookMeta,
+  type StoredChunk,
 } from "@/lib/offline/idb";
 
 export interface BorrowHandshake {
@@ -29,6 +31,26 @@ export interface BorrowHandshake {
   chunkSize: number;
   totalSize: number;
   title?: string;
+}
+
+export interface DownloadOptions {
+  signal?: AbortSignal;
+  onProgress?: (pct: number) => void;
+}
+
+const activeDownloads = new Map<string, Promise<void>>();
+
+export function isOfflineCopyReady(
+  stored: StoredBookMeta,
+  handshake: BorrowHandshake,
+  chunkCount: number
+): boolean {
+  return (
+    chunkCount >= stored.totalChunks &&
+    stored.borrowId === handshake.borrow.id &&
+    stored.chunkSize === handshake.chunkSize &&
+    stored.chunkKeyMaterial === handshake.crypto.chunkKeyMaterial
+  );
 }
 
 export async function serverCheckIn(bookId: string): Promise<{
@@ -64,16 +86,44 @@ export async function downloadBookForOffline(
   bookId: string,
   handshake: BorrowHandshake,
   title: string,
-  onProgress?: (pct: number) => void
+  options?: DownloadOptions | ((pct: number) => void)
 ): Promise<void> {
-  const headRes = await fetch(`/api/books/${bookId}/stream`, { method: "HEAD" });
-  if (!headRes.ok) {
-    throw new Error("Stream authorization failed");
+  const opts: DownloadOptions =
+    typeof options === "function" ? { onProgress: options } : (options ?? {});
+
+  const existing = activeDownloads.get(bookId);
+  if (existing) {
+    return existing;
   }
 
-  const totalChunks = parseInt(headRes.headers.get("X-Total-Chunks") ?? "0", 10);
-  const totalSize = parseInt(headRes.headers.get("X-Total-Size") ?? "0", 10);
-  const chunkSize = handshake.chunkSize;
+  const task = downloadBookForOfflineImpl(bookId, handshake, title, opts).finally(
+    () => {
+      activeDownloads.delete(bookId);
+    }
+  );
+
+  activeDownloads.set(bookId, task);
+  return task;
+}
+
+async function downloadBookForOfflineImpl(
+  bookId: string,
+  handshake: BorrowHandshake,
+  title: string,
+  { signal, onProgress }: DownloadOptions
+): Promise<void> {
+  onProgress?.(0);
+
+  const totalChunks = Math.ceil(handshake.totalSize / handshake.chunkSize);
+  if (totalChunks <= 0) {
+    throw new Error("Invalid book size");
+  }
+
+  const stored = await getStoredBook(bookId);
+  const chunkCount = await countOfflineChunks(bookId);
+  if (stored && !isOfflineCopyReady(stored, handshake, chunkCount)) {
+    await purgeBookFromIDB(bookId);
+  }
 
   const aesKey = await deriveAesKey(
     handshake.crypto.chunkKeyMaterial,
@@ -88,8 +138,8 @@ export async function downloadBookForOffline(
     expiresAt: handshake.borrow.expiresAt,
     borrowedAt: handshake.borrow.borrowedAt,
     totalChunks,
-    totalSize,
-    chunkSize,
+    totalSize: handshake.totalSize,
+    chunkSize: handshake.chunkSize,
     bookSalt: handshake.bookSalt,
     chunkKeyMaterial: handshake.crypto.chunkKeyMaterial,
     ivSeed: handshake.crypto.ivSeed,
@@ -99,19 +149,19 @@ export async function downloadBookForOffline(
   await saveBookMeta(meta);
 
   for (let i = 0; i < totalChunks; i++) {
-    const res = await fetch(`/api/books/${bookId}/stream?chunk=${i}`);
+    if (signal?.aborted) {
+      throw new DOMException("Download cancelled", "AbortError");
+    }
+
+    const res = await fetch(`/api/books/${bookId}/stream?chunk=${i}`, { signal });
     if (!res.ok) throw new Error(`Failed to download chunk ${i}`);
 
     const plaintext = await res.arrayBuffer();
     const iv = ivForChunkIndex(handshake.crypto.ivSeed, i);
     const ciphertext = await encryptChunk(aesKey, iv, plaintext);
 
-    await saveEncryptedChunk({
-      bookId,
-      chunkIndex: i,
-      ciphertext,
-      iv,
-    });
+    const chunk: StoredChunk = { bookId, chunkIndex: i, ciphertext, iv };
+    await saveEncryptedChunksBatch([chunk]);
 
     onProgress?.(Math.round(((i + 1) / totalChunks) * 100));
   }
@@ -141,8 +191,7 @@ export async function decryptBookInMemory(bookId: string): Promise<Blob> {
 
   const parts: ArrayBuffer[] = [];
   for (const chunk of chunks) {
-    const decrypted = await decryptChunk(aesKey, chunk.iv, chunk.ciphertext);
-    parts.push(decrypted);
+    parts.push(await decryptChunk(aesKey, chunk.iv, chunk.ciphertext));
   }
 
   return new Blob(parts, { type: "application/epub+zip" });

@@ -55,9 +55,22 @@ export async function verifyBorrowForStream(
   userId: string,
   bookId: string
 ): Promise<{ ok: true; borrow: BorrowRecord } | { ok: false; reason: string }> {
-  const borrow = await getValidBorrow(userId, bookId);
-  if (!borrow) {
+  // Lean check for high-frequency chunk streaming — no stale-borrow sweep per chunk.
+  const record = await prisma.borrowRecord.findUnique({
+    where: { userId_bookId: { userId, bookId } },
+  });
+
+  if (!record || record.status !== "ACTIVE") {
     return { ok: false, reason: "No active borrow or borrowing period expired" };
   }
-  return { ok: true, borrow };
+
+  if (isBorrowExpired(record.expiresAt)) {
+    await prisma.borrowRecord.update({
+      where: { id: record.id },
+      data: { status: "EXPIRED" },
+    });
+    return { ok: false, reason: "No active borrow or borrowing period expired" };
+  }
+
+  return { ok: true, borrow: record };
 }

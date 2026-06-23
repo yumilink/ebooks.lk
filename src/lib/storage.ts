@@ -6,6 +6,9 @@ const UPLOAD_ROOT = path.join(process.cwd(), "storage");
 const EPUB_DIR = path.join(UPLOAD_ROOT, "epub");
 const COVER_DIR = path.join(process.cwd(), "public", "covers");
 
+const epubSizeCache = new Map<string, { size: number; cachedAt: number }>();
+const EPUB_SIZE_CACHE_MS = 60_000;
+
 export async function ensureStorageDirs(): Promise<void> {
   await mkdir(EPUB_DIR, { recursive: true });
   await mkdir(COVER_DIR, { recursive: true });
@@ -49,12 +52,14 @@ export function resolveEpubAbsolutePath(relativePath: string): string {
 export async function readEpubChunk(
   relativePath: string,
   start: number,
-  end: number
+  end: number,
+  knownFileSize?: number
 ): Promise<Buffer> {
   const absolutePath = resolveEpubAbsolutePath(relativePath);
-  const fileStat = await stat(absolutePath);
+  const fileSize =
+    knownFileSize ?? (await stat(absolutePath)).size;
   const safeStart = Math.max(0, start);
-  const safeEnd = Math.min(fileStat.size - 1, end);
+  const safeEnd = Math.min(fileSize - 1, end);
 
   const handle = await import("fs/promises").then((fs) =>
     fs.open(absolutePath, "r")
@@ -70,8 +75,14 @@ export async function readEpubChunk(
 }
 
 export async function getEpubFileSize(relativePath: string): Promise<number> {
+  const cached = epubSizeCache.get(relativePath);
+  if (cached && Date.now() - cached.cachedAt < EPUB_SIZE_CACHE_MS) {
+    return cached.size;
+  }
+
   const absolutePath = resolveEpubAbsolutePath(relativePath);
   const fileStat = await stat(absolutePath);
+  epubSizeCache.set(relativePath, { size: fileStat.size, cachedAt: Date.now() });
   return fileStat.size;
 }
 

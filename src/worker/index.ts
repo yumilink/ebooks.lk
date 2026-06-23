@@ -12,7 +12,26 @@ interface SyncEvent extends ExtendableEvent {
 }
 
 const DB_NAME = "ebooks-lk-offline";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
+
+function ensureOfflineSchema(db: IDBDatabase): void {
+  if (!db.objectStoreNames.contains("books")) {
+    const books = db.createObjectStore("books", { keyPath: "bookId" });
+    books.createIndex("by-expires", "expiresAt");
+  }
+
+  if (!db.objectStoreNames.contains("chunks")) {
+    const chunks = db.createObjectStore("chunks", {
+      keyPath: ["bookId", "chunkIndex"],
+    });
+    chunks.createIndex("by-book", "bookId");
+  }
+
+  if (!db.objectStoreNames.contains("readingQueue")) {
+    const queue = db.createObjectStore("readingQueue", { keyPath: "id" });
+    queue.createIndex("by-synced", "synced");
+  }
+}
 
 function openOfflineDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -20,7 +39,7 @@ function openOfflineDB(): Promise<IDBDatabase> {
     req.onerror = () => reject(req.error);
     req.onsuccess = () => resolve(req.result);
     req.onupgradeneeded = () => {
-      /* schema owned by idb.ts on main thread */
+      ensureOfflineSchema(req.result);
     };
   });
 }
@@ -28,20 +47,24 @@ function openOfflineDB(): Promise<IDBDatabase> {
 async function getAllBookMeta(): Promise<
   Array<{ bookId: string; expiresAt: string }>
 > {
-  const db = await openOfflineDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction("books", "readonly");
-    const store = tx.objectStore("books");
-    const req = store.getAll();
-    req.onsuccess = () => {
-      const rows = (req.result ?? []) as Array<{
-        bookId: string;
-        expiresAt: string;
-      }>;
-      resolve(rows);
-    };
-    req.onerror = () => reject(req.error);
-  });
+  try {
+    const db = await openOfflineDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction("books", "readonly");
+      const store = tx.objectStore("books");
+      const req = store.getAll();
+      req.onsuccess = () => {
+        const rows = (req.result ?? []) as Array<{
+          bookId: string;
+          expiresAt: string;
+        }>;
+        resolve(rows);
+      };
+      req.onerror = () => reject(req.error);
+    });
+  } catch {
+    return [];
+  }
 }
 
 async function purgeBookSW(bookId: string): Promise<void> {
@@ -80,7 +103,13 @@ async function enforceExpiryInSW(): Promise<string[]> {
 }
 
 async function syncReadingQueueSW(): Promise<void> {
-  const db = await openOfflineDB();
+  let db: IDBDatabase;
+  try {
+    db = await openOfflineDB();
+  } catch {
+    return;
+  }
+
   const pending: Array<{
     id: string;
     bookId: string;

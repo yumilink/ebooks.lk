@@ -9,9 +9,10 @@ import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import {
   downloadBookForOffline,
+  isOfflineCopyReady,
   type BorrowHandshake,
 } from "@/lib/offline/borrow-manager";
-import { getStoredBook } from "@/lib/offline/idb";
+import { countOfflineChunks, getStoredBook } from "@/lib/offline/idb";
 
 type PageProps = { params: Promise<{ bookId: string }> };
 
@@ -38,49 +39,71 @@ export default function ReaderPage({ params }: PageProps) {
   useEffect(() => {
     if (!bookId || status !== "authenticated") return;
 
+    const controller = new AbortController();
+    let cancelled = false;
+
     async function init() {
       setLoading(true);
       setError(null);
+      setDownloadProgress(0);
 
       try {
-        const detailRes = await fetch(`/api/books/${bookId}`);
+        const borrowRes = await fetch(`/api/books/${bookId}/reborrow`, {
+          method: "GET",
+          signal: controller.signal,
+        });
+
+        if (!borrowRes.ok) {
+          const data = await borrowRes.json();
+          throw new Error(data.error ?? "No active borrow. Borrow this book first from the catalog.");
+        }
+
+        const handshake = (await borrowRes.json()) as BorrowHandshake;
+        if (cancelled) return;
+
+        const detailRes = await fetch(`/api/books/${bookId}`, {
+          signal: controller.signal,
+        });
         const detail = await detailRes.json();
         if (!detailRes.ok) throw new Error(detail.error ?? "Book not found");
+        if (cancelled) return;
+
         setBookTitle(detail.book.title);
+        setExpiresAt(handshake.borrow.expiresAt);
 
         const stored = await getStoredBook(bookId!);
-        if (stored) {
-          setExpiresAt(stored.expiresAt);
+        const chunkCount = stored ? await countOfflineChunks(bookId!) : 0;
+
+        if (stored && isOfflineCopyReady(stored, handshake, chunkCount)) {
           setLoading(false);
           return;
         }
 
-        const borrowRes = await fetch(`/api/books/${bookId}/reborrow`, {
-          method: "GET",
+        await downloadBookForOffline(bookId!, handshake, detail.book.title, {
+          signal: controller.signal,
+          onProgress: (pct) => {
+            if (!cancelled) setDownloadProgress(pct);
+          },
         });
-
-        if (!borrowRes.ok) {
-          throw new Error("No active borrow. Borrow this book first from the catalog.");
-        }
-
-        const handshake = (await borrowRes.json()) as BorrowHandshake;
-        setExpiresAt(handshake.borrow.expiresAt);
-
-        await downloadBookForOffline(
-          bookId!,
-          handshake,
-          detail.book.title,
-          setDownloadProgress
-        );
       } catch (err) {
+        if (cancelled || (err instanceof DOMException && err.name === "AbortError")) {
+          return;
+        }
         setError(err instanceof Error ? err.message : "Failed to load reader");
       } finally {
-        setLoading(false);
-        setDownloadProgress(0);
+        if (!cancelled) {
+          setLoading(false);
+          setDownloadProgress(0);
+        }
       }
     }
 
     void init();
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, [bookId, status]);
 
   if (status === "loading" || !bookId) {
@@ -106,17 +129,17 @@ export default function ReaderPage({ params }: PageProps) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 text-stone-500">
         <p>Preparing encrypted offline copy…</p>
-        {downloadProgress > 0 && (
-          <div className="w-64">
-            <div className="h-2 overflow-hidden rounded-full bg-stone-200">
-              <div
-                className="h-full bg-amber-600 transition-all"
-                style={{ width: `${downloadProgress}%` }}
-              />
-            </div>
-            <p className="mt-2 text-center text-xs">{downloadProgress}%</p>
+        <div className="w-64">
+          <div className="h-2 overflow-hidden rounded-full bg-stone-200">
+            <div
+              className="h-full bg-amber-600 transition-all"
+              style={{ width: `${Math.max(downloadProgress, 2)}%` }}
+            />
           </div>
-        )}
+          <p className="mt-2 text-center text-xs">
+            {downloadProgress > 0 ? `${downloadProgress}%` : "Starting download…"}
+          </p>
+        </div>
       </div>
     );
   }

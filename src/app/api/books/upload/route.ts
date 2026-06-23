@@ -12,6 +12,7 @@ import {
   MAX_EPUB_BYTES,
   MAX_COVER_BYTES,
 } from "@/lib/validation/bookUpload";
+import { normalizeTagsInput } from "@/lib/book-metadata";
 import {
   saveEpubFile,
   saveCoverImage,
@@ -37,8 +38,31 @@ export async function POST(request: Request) {
   const description = formData.get("description")
     ? String(formData.get("description"))
     : undefined;
+  const category = String(formData.get("category") ?? "");
+  const language = String(formData.get("language") ?? "");
+  const publicationYearRaw = String(formData.get("publicationYear") ?? "").trim();
+  const publisher = formData.get("publisher")
+    ? String(formData.get("publisher"))
+    : undefined;
+  const status = String(formData.get("status") ?? "PUBLISHED");
+  const tagsRaw = formData.get("tags") ? String(formData.get("tags")) : undefined;
 
-  const parsed = bookUploadSchema.safeParse({ title, isbn, description });
+  const publicationYear =
+    publicationYearRaw === ""
+      ? undefined
+      : Number.parseInt(publicationYearRaw, 10);
+
+  const parsed = bookUploadSchema.safeParse({
+    title,
+    isbn,
+    description,
+    category,
+    language,
+    publicationYear: Number.isNaN(publicationYear) ? undefined : publicationYear,
+    publisher,
+    status,
+    tags: tagsRaw,
+  });
   if (!parsed.success) {
     return jsonError(parsed.error.errors[0]?.message ?? "Validation failed", 400);
   }
@@ -107,6 +131,9 @@ export async function POST(request: Request) {
     return jsonError("Invalid author", 400);
   }
 
+  const bookStatus =
+    session.user.role === "ADMIN" ? parsed.data.status : "PUBLISHED";
+
   const bookId = crypto.randomUUID();
   const encryptedKey = generateBookSalt();
 
@@ -119,6 +146,12 @@ export async function POST(request: Request) {
       title: parsed.data.title,
       isbn: normalizedIsbn,
       description: parsed.data.description,
+      category: parsed.data.category,
+      language: parsed.data.language,
+      publicationYear: parsed.data.publicationYear ?? null,
+      publisher: parsed.data.publisher || null,
+      status: bookStatus,
+      tags: parsed.data.tags ? normalizeTagsInput(parsed.data.tags) : null,
       epubFilePath,
       coverImageUrl,
       encryptedKey,
@@ -128,6 +161,9 @@ export async function POST(request: Request) {
       id: true,
       title: true,
       isbn: true,
+      category: true,
+      language: true,
+      status: true,
       coverImageUrl: true,
       createdAt: true,
     },

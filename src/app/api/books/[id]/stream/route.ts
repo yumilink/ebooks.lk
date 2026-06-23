@@ -52,7 +52,7 @@ export async function GET(request: Request, context: RouteContext) {
 
   const start = chunkIndex * CHUNK_SIZE;
   const end = Math.min(start + CHUNK_SIZE - 1, totalSize - 1);
-  const data = await readEpubChunk(book.epubFilePath, start, end);
+  const data = await readEpubChunk(book.epubFilePath, start, end, totalSize);
 
   return new NextResponse(new Uint8Array(data), {
     status: 200,

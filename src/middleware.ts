@@ -11,6 +11,17 @@ const protectedPaths = [
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  if (
+    process.env.NODE_ENV === "development" &&
+    process.env.ENABLE_PWA !== "true" &&
+    (pathname === "/sw.js" ||
+      pathname.startsWith("/workbox-") ||
+      pathname.startsWith("/fallback-") ||
+      pathname.startsWith("/worker-"))
+  ) {
+    return new NextResponse(null, { status: 404 });
+  }
+
   const rule = protectedPaths.find((p) => pathname.startsWith(p.prefix));
   if (!rule) return NextResponse.next();
 

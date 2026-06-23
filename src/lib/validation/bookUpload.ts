@@ -1,5 +1,21 @@
 import { z } from "zod";
 
+const bookCategoryValues = [
+  "NOVEL",
+  "POETRY",
+  "SHORT_STORY",
+  "ESSAY",
+  "CHILDREN",
+  "ACADEMIC",
+  "BIOGRAPHY",
+  "DRAMA",
+  "OTHER",
+] as const;
+
+const bookStatusValues = ["DRAFT", "PUBLISHED", "ARCHIVED"] as const;
+
+const languageValues = ["si", "en", "ta", "other"] as const;
+
 export const isbnSchema = z
   .string()
   .trim()
@@ -17,6 +33,18 @@ export const bookUploadSchema = z.object({
   title: z.string().trim().min(1).max(500),
   isbn: isbnSchema,
   description: z.string().trim().max(5000).optional(),
+  category: z.enum(bookCategoryValues),
+  language: z.enum(languageValues),
+  publicationYear: z
+    .number()
+    .int()
+    .min(1000)
+    .max(new Date().getFullYear() + 1)
+    .optional()
+    .nullable(),
+  publisher: z.string().trim().max(200).optional(),
+  status: z.enum(bookStatusValues).default("PUBLISHED"),
+  tags: z.string().trim().max(500).optional(),
 });
 
 export const ALLOWED_EPUB_MIME = [

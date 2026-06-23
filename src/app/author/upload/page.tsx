@@ -9,6 +9,12 @@ import { Label } from "@/components/ui/Label";
 import { Textarea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Alert";
+import {
+  BOOK_CATEGORIES,
+  BOOK_LANGUAGES,
+  BOOK_STATUSES,
+} from "@/lib/book-metadata";
+import type { BookCategory, BookStatus } from "@prisma/client";
 
 interface AuthorOption {
   id: string;
@@ -24,6 +30,12 @@ export default function AuthorUploadPage() {
   const [title, setTitle] = useState("");
   const [isbn, setIsbn] = useState("");
   const [description, setDescription] = useState("");
+  const [category, setCategory] = useState<BookCategory>("NOVEL");
+  const [language, setLanguage] = useState("si");
+  const [publicationYear, setPublicationYear] = useState("");
+  const [publisher, setPublisher] = useState("");
+  const [bookStatus, setBookStatus] = useState<BookStatus>("PUBLISHED");
+  const [tags, setTags] = useState("");
   const [authorId, setAuthorId] = useState("");
   const [epub, setEpub] = useState<File | null>(null);
   const [cover, setCover] = useState<File | null>(null);
@@ -86,6 +98,12 @@ export default function AuthorUploadPage() {
     formData.append("title", title);
     formData.append("isbn", isbn);
     formData.append("description", description);
+    formData.append("category", category);
+    formData.append("language", language);
+    formData.append("publicationYear", publicationYear);
+    formData.append("publisher", publisher);
+    formData.append("status", bookStatus);
+    formData.append("tags", tags);
     formData.append("epub", epub);
     formData.append("cover", cover);
     if (session?.user?.role === "ADMIN" && authorId) {
@@ -107,6 +125,12 @@ export default function AuthorUploadPage() {
       setTitle("");
       setIsbn("");
       setDescription("");
+      setCategory("NOVEL");
+      setLanguage("si");
+      setPublicationYear("");
+      setPublisher("");
+      setBookStatus("PUBLISHED");
+      setTags("");
       setEpub(null);
       setCover(null);
       router.push(`/books/${data.book.id}`);
@@ -161,6 +185,95 @@ export default function AuthorUploadPage() {
               placeholder="Synopsis for the storefront…"
             />
           </div>
+
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div>
+              <Label htmlFor="category">Category</Label>
+              <select
+                id="category"
+                required
+                value={category}
+                onChange={(e) => setCategory(e.target.value as BookCategory)}
+                className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2.5 text-sm"
+              >
+                {BOOK_CATEGORIES.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <Label htmlFor="language">Language</Label>
+              <select
+                id="language"
+                required
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+                className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2.5 text-sm"
+              >
+                {BOOK_LANGUAGES.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div>
+              <Label htmlFor="publicationYear">Publication year (optional)</Label>
+              <Input
+                id="publicationYear"
+                type="number"
+                min={1000}
+                max={new Date().getFullYear() + 1}
+                value={publicationYear}
+                onChange={(e) => setPublicationYear(e.target.value)}
+                placeholder="e.g. 2024"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="publisher">Publisher (optional)</Label>
+              <Input
+                id="publisher"
+                value={publisher}
+                onChange={(e) => setPublisher(e.target.value)}
+                placeholder="Publisher name"
+              />
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="tags">Tags (optional)</Label>
+            <Input
+              id="tags"
+              value={tags}
+              onChange={(e) => setTags(e.target.value)}
+              placeholder="history, buddhism, grade-10 (comma-separated)"
+            />
+          </div>
+
+          {session?.user?.role === "ADMIN" && (
+            <div>
+              <Label htmlFor="bookStatus">Catalog status</Label>
+              <select
+                id="bookStatus"
+                value={bookStatus}
+                onChange={(e) => setBookStatus(e.target.value as BookStatus)}
+                className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2.5 text-sm"
+              >
+                {BOOK_STATUSES.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {session?.user?.role === "ADMIN" && (
             <div>

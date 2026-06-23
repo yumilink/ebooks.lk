@@ -28,6 +28,24 @@ enum BorrowStatus {
   EXPIRED
 }
 
+enum BookCategory {
+  NOVEL
+  POETRY
+  SHORT_STORY
+  ESSAY
+  CHILDREN
+  ACADEMIC
+  BIOGRAPHY
+  DRAMA
+  OTHER
+}
+
+enum BookStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
 model User {
   id                 String             @id @default(cuid())
   email              String             @unique
@@ -48,17 +66,24 @@ model User {
 }
 
 model Book {
-  id            String   @id @default(cuid())
-  title         String
-  isbn          String   @unique
-  description   String?
-  epubFilePath  String
-  coverImageUrl String
+  id              String       @id @default(cuid())
+  title           String
+  isbn            String       @unique
+  description     String?
+  category        BookCategory @default(OTHER)
+  language        String       @default("si")
+  publicationYear Int?
+  publisher       String?
+  status          BookStatus   @default(PUBLISHED)
+  /// Comma-separated tags for search, e.g. "history,buddhism"
+  tags            String?
+  epubFilePath    String
+  coverImageUrl   String
   /// Per-book encryption salt (base64) used for client-side AES-GCM key derivation
-  encryptedKey  String
-  authorId      String
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  encryptedKey    String
+  authorId        String
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
 
   author        User           @relation("AuthorBooks", fields: [authorId], references: [id], onDelete: Restrict)
   borrowRecords BorrowRecord[]
@@ -66,6 +91,9 @@ model Book {
 
   @@index([authorId])
   @@index([createdAt])
+  @@index([category])
+  @@index([language])
+  @@index([status])
 }
 
 model BorrowRecord {

@@ -1,7 +1,7 @@
 import { openDB, type DBSchema, type IDBPDatabase } from "idb";
 
 export const DB_NAME = "ebooks-lk-offline";
-export const DB_VERSION = 1;
+export const DB_VERSION = 2;
 
 export interface StoredBookMeta {
   bookId: string;
@@ -58,16 +58,22 @@ export function getOfflineDB(): Promise<IDBPDatabase<EbooksDB>> {
   if (!dbPromise) {
     dbPromise = openDB<EbooksDB>(DB_NAME, DB_VERSION, {
       upgrade(db) {
-        const books = db.createObjectStore("books", { keyPath: "bookId" });
-        books.createIndex("by-expires", "expiresAt");
+        if (!db.objectStoreNames.contains("books")) {
+          const books = db.createObjectStore("books", { keyPath: "bookId" });
+          books.createIndex("by-expires", "expiresAt");
+        }
 
-        const chunks = db.createObjectStore("chunks", {
-          keyPath: ["bookId", "chunkIndex"],
-        });
-        chunks.createIndex("by-book", "bookId");
+        if (!db.objectStoreNames.contains("chunks")) {
+          const chunks = db.createObjectStore("chunks", {
+            keyPath: ["bookId", "chunkIndex"],
+          });
+          chunks.createIndex("by-book", "bookId");
+        }
 
-        const queue = db.createObjectStore("readingQueue", { keyPath: "id" });
-        queue.createIndex("by-synced", "synced");
+        if (!db.objectStoreNames.contains("readingQueue")) {
+          const queue = db.createObjectStore("readingQueue", { keyPath: "id" });
+          queue.createIndex("by-synced", "synced");
+        }
       },
     });
   }
@@ -125,13 +131,26 @@ export async function saveEncryptedChunk(chunk: StoredChunk): Promise<void> {
   await db.put("chunks", chunk);
 }
 
+export async function saveEncryptedChunksBatch(chunks: StoredChunk[]): Promise<void> {
+  if (chunks.length === 0) return;
+  const db = await getOfflineDB();
+  const tx = db.transaction("chunks", "readwrite");
+  for (const chunk of chunks) {
+    void tx.store.put(chunk);
+  }
+  await tx.done;
+}
+
+export async function countOfflineChunks(bookId: string): Promise<number> {
+  const db = await getOfflineDB();
+  return db.countFromIndex("chunks", "by-book", bookId);
+}
+
 export async function getEncryptedChunks(
   bookId: string
 ): Promise<StoredChunk[]> {
   const db = await getOfflineDB();
-  const tx = db.transaction("chunks", "readonly");
-  const index = tx.store.index("by-book");
-  return index.getAll(bookId);
+  return db.getAllFromIndex("chunks", "by-book", bookId);
 }
 
 export async function queueReadingSession(

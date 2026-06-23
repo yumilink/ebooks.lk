@@ -35,10 +35,12 @@ yarn-error.log*
 .vscode
 *.swp
 
-# PWA generated
+# PWA generated (never commit — stale files cause SW reload loops in dev)
 /public/sw.js
 /public/worker-*.js
 /public/swe-worker-*.js
+/public/workbox-*.js
+/public/fallback-*.js
 
 # OS
 .DS_Store
