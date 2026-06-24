@@ -53,6 +53,29 @@ export function isOfflineCopyReady(
   );
 }
 
+/** Local copy complete and borrow not expired — no server handshake required. */
+export function isLocalCopyReadable(
+  stored: StoredBookMeta,
+  chunkCount: number,
+  now: Date = new Date()
+): boolean {
+  return (
+    chunkCount >= stored.totalChunks &&
+    new Date(stored.expiresAt).getTime() > now.getTime()
+  );
+}
+
+export async function getReadableLocalBorrow(
+  bookId: string
+): Promise<StoredBookMeta | null> {
+  await enforceOfflineExpiry();
+  const stored = await getStoredBook(bookId);
+  if (!stored) return null;
+  const chunkCount = await countOfflineChunks(bookId);
+  if (!isLocalCopyReadable(stored, chunkCount)) return null;
+  return stored;
+}
+
 export async function serverCheckIn(bookId: string): Promise<{
   allowed: boolean;
   purgeLocal: boolean;
@@ -60,22 +83,48 @@ export async function serverCheckIn(bookId: string): Promise<{
   borrowId?: string;
 }> {
   const stored = await getStoredBook(bookId);
-  const res = await fetch("/api/borrow/check-in", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      bookId,
-      clientExpiresAt: stored?.expiresAt,
-    }),
-  });
 
-  const data = await res.json();
+  if (!navigator.onLine) {
+    if (stored && new Date(stored.expiresAt).getTime() > Date.now()) {
+      return { allowed: true, purgeLocal: false, expiresAt: stored.expiresAt };
+    }
+    return { allowed: false, purgeLocal: false };
+  }
+
+  let data: {
+    allowed?: boolean;
+    purgeLocal?: boolean;
+    expiresAt?: string;
+    borrowId?: string;
+  };
+
+  try {
+    const res = await fetch("/api/borrow/check-in", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        bookId,
+        clientExpiresAt: stored?.expiresAt,
+      }),
+    });
+    data = await res.json();
+  } catch {
+    if (stored && new Date(stored.expiresAt).getTime() > Date.now()) {
+      return { allowed: true, purgeLocal: false, expiresAt: stored.expiresAt };
+    }
+    return { allowed: false, purgeLocal: false };
+  }
 
   if (data.purgeLocal) {
     await purgeBookFromIDB(bookId);
   }
 
-  return data;
+  return {
+    allowed: Boolean(data.allowed),
+    purgeLocal: Boolean(data.purgeLocal),
+    expiresAt: data.expiresAt,
+    borrowId: data.borrowId,
+  };
 }
 
 export async function enforceOfflineExpiry(): Promise<string[]> {

@@ -15,6 +15,7 @@ import {
   BOOK_STATUSES,
 } from "@/lib/book-metadata";
 import type { BookCategory, BookStatus } from "@prisma/client";
+import { parseApiJson } from "@/lib/parse-api-response";
 
 interface AuthorOption {
   id: string;
@@ -115,7 +116,9 @@ export default function AuthorUploadPage() {
         method: "POST",
         body: formData,
       });
-      const data = await res.json();
+      const data = await parseApiJson<{ error?: string; book: { id: string; title: string } }>(
+        res
+      );
 
       if (!res.ok) {
         throw new Error(data.error ?? "Upload failed");

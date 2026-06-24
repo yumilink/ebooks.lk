@@ -9,6 +9,7 @@ import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import {
   downloadBookForOffline,
+  getReadableLocalBorrow,
   isOfflineCopyReady,
   type BorrowHandshake,
 } from "@/lib/offline/borrow-manager";
@@ -25,19 +26,14 @@ export default function ReaderPage({ params }: PageProps) {
   const [loading, setLoading] = useState(true);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [offlineFirst, setOfflineFirst] = useState(false);
 
   useEffect(() => {
     void params.then((p) => setBookId(p.bookId));
   }, [params]);
 
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.replace(`/login?callbackUrl=/reader/${bookId ?? ""}`);
-    }
-  }, [status, router, bookId]);
-
-  useEffect(() => {
-    if (!bookId || status !== "authenticated") return;
+    if (!bookId || status === "loading") return;
 
     const controller = new AbortController();
     let cancelled = false;
@@ -46,45 +42,32 @@ export default function ReaderPage({ params }: PageProps) {
       setLoading(true);
       setError(null);
       setDownloadProgress(0);
+      setOfflineFirst(false);
 
       try {
-        const borrowRes = await fetch(`/api/books/${bookId}/reborrow`, {
-          method: "GET",
-          signal: controller.signal,
-        });
-
-        if (!borrowRes.ok) {
-          const data = await borrowRes.json();
-          throw new Error(data.error ?? "No active borrow. Borrow this book first from the catalog.");
-        }
-
-        const handshake = (await borrowRes.json()) as BorrowHandshake;
+        const local = await getReadableLocalBorrow(bookId!);
         if (cancelled) return;
 
-        const detailRes = await fetch(`/api/books/${bookId}`, {
-          signal: controller.signal,
-        });
-        const detail = await detailRes.json();
-        if (!detailRes.ok) throw new Error(detail.error ?? "Book not found");
-        if (cancelled) return;
-
-        setBookTitle(detail.book.title);
-        setExpiresAt(handshake.borrow.expiresAt);
-
-        const stored = await getStoredBook(bookId!);
-        const chunkCount = stored ? await countOfflineChunks(bookId!) : 0;
-
-        if (stored && isOfflineCopyReady(stored, handshake, chunkCount)) {
+        if (local) {
+          setBookTitle(local.title);
+          setExpiresAt(local.expiresAt);
+          setOfflineFirst(true);
           setLoading(false);
+
+          if (navigator.onLine && status === "authenticated") {
+            void refreshFromServer(controller.signal).catch(() => {
+              /* keep local copy */
+            });
+          }
           return;
         }
 
-        await downloadBookForOffline(bookId!, handshake, detail.book.title, {
-          signal: controller.signal,
-          onProgress: (pct) => {
-            if (!cancelled) setDownloadProgress(pct);
-          },
-        });
+        if (status !== "authenticated") {
+          router.replace(`/login?callbackUrl=/reader/${bookId}`);
+          return;
+        }
+
+        await downloadFromServer(controller.signal);
       } catch (err) {
         if (cancelled || (err instanceof DOMException && err.name === "AbortError")) {
           return;
@@ -98,15 +81,78 @@ export default function ReaderPage({ params }: PageProps) {
       }
     }
 
+    async function downloadFromServer(signal: AbortSignal) {
+      const borrowRes = await fetch(`/api/books/${bookId}/reborrow`, {
+        method: "GET",
+        signal,
+      });
+
+      if (!borrowRes.ok) {
+        const data = await borrowRes.json();
+        throw new Error(
+          data.error ?? "No active borrow. Borrow this book first from the catalog."
+        );
+      }
+
+      const handshake = (await borrowRes.json()) as BorrowHandshake;
+
+      const detailRes = await fetch(`/api/books/${bookId}`, { signal });
+      const detail = await detailRes.json();
+      if (!detailRes.ok) throw new Error(detail.error ?? "Book not found");
+
+      setBookTitle(detail.book.title);
+      setExpiresAt(handshake.borrow.expiresAt);
+
+      const stored = await getStoredBook(bookId!);
+      const chunkCount = stored ? await countOfflineChunks(bookId!) : 0;
+
+      if (stored && isOfflineCopyReady(stored, handshake, chunkCount)) {
+        return;
+      }
+
+      setLoading(true);
+      await downloadBookForOffline(bookId!, handshake, detail.book.title, {
+        signal,
+        onProgress: (pct) => {
+          if (!cancelled) setDownloadProgress(pct);
+        },
+      });
+    }
+
+    async function refreshFromServer(signal: AbortSignal) {
+      const borrowRes = await fetch(`/api/books/${bookId}/reborrow`, {
+        method: "GET",
+        signal,
+      });
+      if (!borrowRes.ok) return;
+
+      const handshake = (await borrowRes.json()) as BorrowHandshake;
+      const stored = await getStoredBook(bookId!);
+      const chunkCount = stored ? await countOfflineChunks(bookId!) : 0;
+
+      if (stored && isOfflineCopyReady(stored, handshake, chunkCount)) {
+        setExpiresAt(handshake.borrow.expiresAt);
+        return;
+      }
+
+      const detailRes = await fetch(`/api/books/${bookId}`, { signal });
+      const detail = await detailRes.json();
+      if (!detailRes.ok) return;
+
+      setBookTitle(detail.book.title);
+      setExpiresAt(handshake.borrow.expiresAt);
+      await downloadBookForOffline(bookId!, handshake, detail.book.title, { signal });
+    }
+
     void init();
 
     return () => {
       cancelled = true;
       controller.abort();
     };
-  }, [bookId, status]);
+  }, [bookId, status, router]);
 
-  if (status === "loading" || !bookId) {
+  if (!bookId) {
     return (
       <div className="flex min-h-screen items-center justify-center text-stone-500">
         Loading reader…
@@ -150,6 +196,7 @@ export default function ReaderPage({ params }: PageProps) {
         bookId={bookId}
         bookTitle={bookTitle}
         expiresAt={expiresAt}
+        offlineFirst={offlineFirst}
         onExpired={() => router.push(`/books/${bookId}`)}
       />
     </div>

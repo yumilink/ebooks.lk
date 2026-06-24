@@ -27,7 +27,11 @@ import {
 import { progressFromLocation, progressToFraction } from "@/lib/reader/progress";
 import { measureReaderContainer, resizeRendition } from "@/lib/reader/resize";
 import type { ReaderBookmark, ReaderPreferences, TocEntry } from "@/lib/reader/types";
-import { READER_TOP_CHROME, READER_SPREAD_MIN_WIDTH } from "@/lib/reader/types";
+import {
+  READER_OFFLINE_BANNER,
+  READER_TOP_CHROME,
+  READER_SPREAD_MIN_WIDTH,
+} from "@/lib/reader/types";
 import {
   ReaderToolbar,
   type ReaderPanel,
@@ -37,6 +41,7 @@ interface EpubReaderProps {
   bookId: string;
   bookTitle: string;
   expiresAt: string;
+  offlineFirst?: boolean;
   onExpired?: () => void;
 }
 
@@ -48,7 +53,7 @@ function formatRemaining(ms: number): string {
   return `${days}d ${hours}h ${mins}m remaining`;
 }
 
-export function EpubReader({ bookId, bookTitle, expiresAt, onExpired }: EpubReaderProps) {
+export function EpubReader({ bookId, bookTitle, expiresAt, offlineFirst, onExpired }: EpubReaderProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const renditionRef = useRef<Rendition | null>(null);
   const bookRef = useRef<Awaited<ReturnType<typeof ePub>> | null>(null);
@@ -67,8 +72,24 @@ export function EpubReader({ bookId, bookTitle, expiresAt, onExpired }: EpubRead
   const [bookmarks, setBookmarks] = useState<ReaderBookmark[]>([]);
   const [progress, setProgress] = useState(0);
   const [currentHref, setCurrentHref] = useState<string>();
+  const [isNetworkOffline, setIsNetworkOffline] = useState(
+    () => typeof navigator !== "undefined" && !navigator.onLine
+  );
 
   const chrome = THEME_CHROME[prefs.theme];
+  const contentTop = `calc(${READER_TOP_CHROME} + ${
+    isNetworkOffline ? READER_OFFLINE_BANNER : "0px"
+  } + env(safe-area-inset-top, 0px))`;
+
+  useEffect(() => {
+    const sync = () => setIsNetworkOffline(!navigator.onLine);
+    window.addEventListener("online", sync);
+    window.addEventListener("offline", sync);
+    return () => {
+      window.removeEventListener("online", sync);
+      window.removeEventListener("offline", sync);
+    };
+  }, []);
 
   const handleExpiry = useCallback(async () => {
     onExpired?.();
@@ -113,15 +134,25 @@ export function EpubReader({ bookId, bookTitle, expiresAt, onExpired }: EpubRead
         }
 
         await enforceOfflineExpiry();
-        const checkIn = await serverCheckIn(bookId);
-        if (!checkIn.allowed) {
-          setError("Borrow expired or invalid. Please re-borrow online.");
-          setLoading(false);
-          return;
-        }
 
         const blob = await decryptBookInMemory(bookId);
         if (cancelled) return;
+
+        if (navigator.onLine && !offlineFirst) {
+          const checkIn = await serverCheckIn(bookId);
+          if (!checkIn.allowed) {
+            setError("Borrow expired or invalid. Please re-borrow online.");
+            setLoading(false);
+            return;
+          }
+        } else if (navigator.onLine && offlineFirst) {
+          void serverCheckIn(bookId).then((checkIn) => {
+            if (!checkIn.allowed && !cancelled) {
+              setError("Borrow expired or invalid. Please re-borrow online.");
+              renditionRef.current?.destroy();
+            }
+          });
+        }
 
         const loadedPrefs = loadReaderPreferences();
         initialFlowRef.current = loadedPrefs.flow;
@@ -199,12 +230,24 @@ export function EpubReader({ bookId, bookTitle, expiresAt, onExpired }: EpubRead
         renditionRef.current = rendition;
 
         const localPosition = loadReadingPosition(bookId);
-        const serverPosition =
-          localPosition ?? (await fetchServerReadingPosition(bookId));
+        let restorePosition = localPosition;
 
-        if (serverPosition?.cfi) {
-          await rendition.display(serverPosition.cfi);
-          setProgress(serverPosition.percentage * 100);
+        if (navigator.onLine) {
+          const serverPosition = await fetchServerReadingPosition(bookId);
+          if (serverPosition?.cfi) {
+            const localTime = localPosition
+              ? Date.parse(localPosition.updatedAt)
+              : 0;
+            const serverTime = Date.parse(serverPosition.updatedAt);
+            if (!localPosition || serverTime > localTime) {
+              restorePosition = serverPosition;
+            }
+          }
+        }
+
+        if (restorePosition?.cfi) {
+          await rendition.display(restorePosition.cfi);
+          setProgress(restorePosition.percentage * 100);
         } else {
           await rendition.display();
         }
@@ -230,7 +273,7 @@ export function EpubReader({ bookId, bookTitle, expiresAt, onExpired }: EpubRead
       renditionRef.current?.destroy();
       renditionRef.current = null;
     };
-  }, [bookId]);
+  }, [bookId, offlineFirst]);
 
   useEffect(() => {
     if (loading || error) return;
@@ -393,6 +436,15 @@ export function EpubReader({ bookId, bookTitle, expiresAt, onExpired }: EpubRead
       className="relative flex h-full min-h-0 flex-col"
       style={{ background: chrome.shell, color: chrome.text }}
     >
+      {!loading && !error && isNetworkOffline && (
+        <p
+          className="absolute inset-x-0 z-20 bg-amber-100 py-1 text-center text-xs text-amber-900"
+          style={{ top: `calc(${READER_TOP_CHROME} + env(safe-area-inset-top, 0px))` }}
+        >
+          Offline · reading from saved copy
+        </p>
+      )}
+
       {!loading && !error && (
         <ReaderToolbar
           bookId={bookId}
@@ -439,7 +491,7 @@ export function EpubReader({ bookId, bookTitle, expiresAt, onExpired }: EpubRead
           onCut={blockRip}
           onDragStart={blockRip}
           style={{
-            top: `calc(${READER_TOP_CHROME} + env(safe-area-inset-top, 0px))`,
+            top: contentTop,
             userSelect: "none",
             WebkitUserSelect: "none",
             background: chrome.shell,

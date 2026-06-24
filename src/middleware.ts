@@ -5,7 +5,6 @@ import { getToken } from "next-auth/jwt";
 const protectedPaths = [
   { prefix: "/admin", roles: ["ADMIN"] },
   { prefix: "/author", roles: ["AUTHOR", "ADMIN"] },
-  { prefix: "/reader", roles: ["MEMBER", "ADMIN"] },
 ];
 
 export async function middleware(request: NextRequest) {
@@ -41,5 +40,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/author/:path*", "/reader/:path*"],
+  matcher: ["/admin/:path*", "/author/:path*"],
 };

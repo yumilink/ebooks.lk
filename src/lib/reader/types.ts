@@ -41,6 +41,9 @@ export const FONT_FAMILY_OPTIONS = [
 /** Top bar (h-9) + progress strip (h-0.5) — reserve this space for epub content */
 export const READER_TOP_CHROME = "2.375rem";
 
+/** Slim offline notice shown below the toolbar when the device has no network */
+export const READER_OFFLINE_BANNER = "1.5rem";
+
 /** Side gutter for mobile page-turn buttons (keeps text clear of controls) */
 export const READER_SIDE_GUTTER = "2.25rem";
 
