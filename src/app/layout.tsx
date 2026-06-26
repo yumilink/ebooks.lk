@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { PwaBootstrap } from "@/components/PwaBootstrap";
+import { RegisterPwa } from "@/components/RegisterPwa";
 import { AuthSessionProvider } from "@/components/providers/SessionProvider";
 import { AppShell } from "@/components/layout/AppShell";
 import "./globals.css";
@@ -45,6 +46,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <AuthSessionProvider>
+          <RegisterPwa />
           <PwaBootstrap />
           <AppShell>{children}</AppShell>
         </AuthSessionProvider>

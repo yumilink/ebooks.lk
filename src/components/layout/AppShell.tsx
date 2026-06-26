@@ -1,5 +1,6 @@
 import { Navbar } from "./Navbar";
 import { SecureContextBanner } from "@/components/SecureContextBanner";
+import { PwaInstallPrompt } from "@/components/PwaInstallPrompt";
 import { ReaderChromeGuard } from "./ReaderChromeGuard";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -8,6 +9,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       siteChrome={
         <>
           <SecureContextBanner />
+          <PwaInstallPrompt />
           <Navbar />
         </>
       }
