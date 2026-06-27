@@ -23,7 +23,7 @@ export function ReaderChromeGuard({
   return (
     <div className="flex min-h-screen flex-col bg-stone-50">
       {siteChrome}
-      <main className="flex-1">{children}</main>
+      <main className="relative z-0 flex-1">{children}</main>
       {siteFooter}
     </div>
   );

@@ -22,7 +22,7 @@ const features = [
 export default function HomePage() {
   return (
     <div>
-      <section className="relative overflow-hidden border-b border-stone-200 bg-gradient-to-br from-stone-50 via-white to-amber-50/40">
+      <section className="relative z-0 overflow-hidden border-b border-stone-200 bg-gradient-to-br from-stone-50 via-white to-amber-50/40">
         <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-amber-200/30 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-16 left-0 h-48 w-48 rounded-full bg-stone-200/40 blur-3xl" />
 

@@ -4,22 +4,31 @@ import Link from "next/link";
 import { useState } from "react";
 import { cn } from "@/lib/cn";
 
-const publicLinks = [
+export const publicNavLinks = [
   { href: "/books", label: "Catalog" },
   { href: "/my-book-pouch", label: "My Book Pouch" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
-];
+] as const;
+
+export type NavLinkItem = { href: string; label: string };
 
 interface SiteNavLinksProps {
   className?: string;
   onNavigate?: () => void;
+  extraLinks?: NavLinkItem[];
 }
 
-export function SiteNavLinks({ className, onNavigate }: SiteNavLinksProps) {
+export function SiteNavLinks({
+  className,
+  onNavigate,
+  extraLinks = [],
+}: SiteNavLinksProps) {
+  const links = [...publicNavLinks, ...extraLinks];
+
   return (
     <nav className={cn("flex items-center gap-1", className)}>
-      {publicLinks.map((link) => (
+      {links.map((link) => (
         <Link
           key={link.href}
           href={link.href}
@@ -33,7 +42,11 @@ export function SiteNavLinks({ className, onNavigate }: SiteNavLinksProps) {
   );
 }
 
-export function MobileNavMenu() {
+interface MobileNavMenuProps {
+  extraLinks?: NavLinkItem[];
+}
+
+export function MobileNavMenu({ extraLinks = [] }: MobileNavMenuProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -43,7 +56,7 @@ export function MobileNavMenu() {
         aria-label="Open menu"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className="rounded-md border border-stone-200 px-2.5 py-1.5 text-sm text-stone-700"
+        className="relative z-[70] rounded-md border border-stone-200 bg-white px-2.5 py-1.5 text-sm text-stone-700"
       >
         ☰
       </button>
@@ -52,12 +65,13 @@ export function MobileNavMenu() {
           <button
             type="button"
             aria-label="Close menu"
-            className="fixed inset-0 z-40 bg-black/20"
+            className="fixed inset-0 z-[65] bg-black/25"
             onClick={() => setOpen(false)}
           />
-          <div className="absolute left-0 right-0 top-full z-50 border-b border-stone-200 bg-white px-4 py-3 shadow-lg">
+          <div className="fixed left-0 right-0 top-[4.25rem] z-[70] max-h-[calc(100dvh-4.25rem)] overflow-y-auto border-b border-stone-200 bg-white px-4 py-3 shadow-lg">
             <SiteNavLinks
               className="flex-col items-stretch"
+              extraLinks={extraLinks}
               onNavigate={() => setOpen(false)}
             />
           </div>
