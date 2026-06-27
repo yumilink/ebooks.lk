@@ -449,7 +449,6 @@ export function EpubReader({ bookId, bookTitle, expiresAt, offlineFirst, onExpir
 
       {!loading && !error && (
         <ReaderToolbar
-          bookId={bookId}
           bookTitle={bookTitle}
           backHref={backHref}
           panel={panel}

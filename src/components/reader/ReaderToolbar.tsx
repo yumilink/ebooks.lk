@@ -10,7 +10,6 @@ import { THEME_CHROME } from "@/lib/reader/epub-themes";
 export type ReaderPanel = "toc" | "bookmarks" | "settings" | null;
 
 interface ReaderToolbarProps {
-  bookId: string;
   bookTitle: string;
   backHref: string;
   panel: ReaderPanel;
@@ -31,7 +30,6 @@ interface ReaderToolbarProps {
 }
 
 export function ReaderToolbar({
-  bookId,
   bookTitle,
   backHref,
   panel,

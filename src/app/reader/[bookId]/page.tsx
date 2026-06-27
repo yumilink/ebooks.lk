@@ -134,6 +134,10 @@ export default function ReaderPage({ params }: PageProps) {
       const stored = await getStoredBook(bookId!);
       const chunkCount = stored ? await countOfflineChunks(bookId!) : 0;
 
+      const detailRes = await fetch(`/api/books/${bookId}`, { signal });
+      const detail = await detailRes.json();
+      if (!detailRes.ok) return;
+
       if (stored && isOfflineCopyReady(stored, handshake, chunkCount)) {
         setExpiresAt(handshake.borrow.expiresAt);
         if (detail.book.coverImageUrl && stored.coverImageUrl !== detail.book.coverImageUrl) {
@@ -141,10 +145,6 @@ export default function ReaderPage({ params }: PageProps) {
         }
         return;
       }
-
-      const detailRes = await fetch(`/api/books/${bookId}`, { signal });
-      const detail = await detailRes.json();
-      if (!detailRes.ok) return;
 
       setBookTitle(detail.book.title);
       setExpiresAt(handshake.borrow.expiresAt);
