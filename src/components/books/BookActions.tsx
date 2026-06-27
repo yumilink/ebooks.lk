@@ -10,6 +10,7 @@ import {
   type BorrowHandshake,
 } from "@/lib/offline/borrow-manager";
 import { isSecureCryptoContext, INSECURE_CONTEXT_MESSAGE } from "@/lib/crypto/secure-context";
+import { warmPwaShellCache } from "@/lib/offline/pwa-shell";
 
 interface BookActionsProps {
   bookId: string;
@@ -61,6 +62,7 @@ export function BookActions({
         onProgress: setProgress,
         coverImageUrl,
       });
+      void warmPwaShellCache([`/reader/${bookId}`]);
       setMessage("Book downloaded for offline reading.");
       router.refresh();
     } catch (err) {
@@ -87,6 +89,7 @@ export function BookActions({
         onProgress: setProgress,
         coverImageUrl,
       });
+      void warmPwaShellCache([`/reader/${bookId}`]);
       setMessage("Borrow renewed for 7 days and re-downloaded.");
       router.refresh();
     } catch (err) {

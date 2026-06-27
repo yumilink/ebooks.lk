@@ -14,6 +14,30 @@ interface SyncEvent extends ExtendableEvent {
 const DB_NAME = "ebooks-lk-offline";
 const DB_VERSION = 2;
 
+/** Cached on SW activate for offline document refresh */
+const SHELL_PATHS = [
+  "/",
+  "/books",
+  "/my-book-pouch",
+  "/offline",
+  "/login",
+  "/borrow-policy",
+];
+
+async function warmShellDocuments(extraPaths: string[] = []): Promise<void> {
+  const origin = self.location.origin;
+  const paths = [...new Set([...SHELL_PATHS, ...extraPaths])];
+
+  await Promise.allSettled(
+    paths.map((path) =>
+      fetch(new URL(path, origin), {
+        credentials: "same-origin",
+        headers: { Accept: "text/html" },
+      })
+    )
+  );
+}
+
 function ensureOfflineSchema(db: IDBDatabase): void {
   if (!db.objectStoreNames.contains("books")) {
     const books = db.createObjectStore("books", { keyPath: "bookId" });
@@ -163,6 +187,11 @@ self.addEventListener("activate", (event) => {
     (async () => {
       await enforceExpiryInSW();
       await self.clients.claim();
+      try {
+        await warmShellDocuments();
+      } catch {
+        /* best-effort shell warm */
+      }
     })()
   );
 });
@@ -211,6 +240,13 @@ self.addEventListener("message", (event) => {
 
   if (data.type === "SYNC_READING_LOGS") {
     event.waitUntil(syncReadingQueueSW());
+  }
+
+  if (data.type === "WARM_SHELL") {
+    const paths = Array.isArray((data as { paths?: unknown }).paths)
+      ? ((data as { paths: string[] }).paths ?? [])
+      : [];
+    event.waitUntil(warmShellDocuments(paths));
   }
 });
 

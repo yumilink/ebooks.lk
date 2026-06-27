@@ -5,6 +5,7 @@ import {
   enforceOfflineExpiry,
   syncPendingReadingLogs,
 } from "@/lib/offline/borrow-manager";
+import { warmPwaShellWithPouchReaders } from "@/lib/offline/pwa-shell";
 
 async function unregisterServiceWorkers(): Promise<void> {
   if (!("serviceWorker" in navigator)) return;
@@ -34,19 +35,26 @@ export function PwaBootstrap() {
     }
 
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.ready.then((reg) => {
+      void navigator.serviceWorker.ready.then((reg) => {
         reg.active?.postMessage({ type: "ENFORCE_BORROW_EXPIRY" });
+        if (navigator.onLine) {
+          void warmPwaShellWithPouchReaders();
+        }
       });
     }
 
     const idleId = window.setTimeout(() => {
       void enforceOfflineExpiry();
       void syncPendingReadingLogs();
+      if (navigator.onLine) {
+        void warmPwaShellWithPouchReaders();
+      }
     }, 2500);
 
     const onOnline = () => {
       void syncPendingReadingLogs();
       navigator.serviceWorker.controller?.postMessage({ type: "SYNC_READING_LOGS" });
+      void warmPwaShellWithPouchReaders();
     };
 
     window.addEventListener("online", onOnline);
