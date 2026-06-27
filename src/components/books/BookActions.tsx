@@ -14,6 +14,7 @@ import { isSecureCryptoContext, INSECURE_CONTEXT_MESSAGE } from "@/lib/crypto/se
 interface BookActionsProps {
   bookId: string;
   bookTitle: string;
+  coverImageUrl: string;
   canBorrow: boolean;
   isLoggedIn: boolean;
   hasActiveBorrow: boolean;
@@ -24,6 +25,7 @@ interface BookActionsProps {
 export function BookActions({
   bookId,
   bookTitle,
+  coverImageUrl,
   canBorrow,
   isLoggedIn,
   hasActiveBorrow,
@@ -55,7 +57,10 @@ export function BookActions({
 
     try {
       const handshake = await fetchHandshake("borrow");
-      await downloadBookForOffline(bookId, handshake, bookTitle, setProgress);
+      await downloadBookForOffline(bookId, handshake, bookTitle, {
+        onProgress: setProgress,
+        coverImageUrl,
+      });
       setMessage("Book downloaded for offline reading.");
       router.refresh();
     } catch (err) {
@@ -78,7 +83,10 @@ export function BookActions({
 
     try {
       const handshake = await fetchHandshake("reborrow");
-      await downloadBookForOffline(bookId, handshake, bookTitle, setProgress);
+      await downloadBookForOffline(bookId, handshake, bookTitle, {
+        onProgress: setProgress,
+        coverImageUrl,
+      });
       setMessage("Borrow renewed for 7 days and re-downloaded.");
       router.refresh();
     } catch (err) {

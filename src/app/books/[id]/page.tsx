@@ -81,6 +81,7 @@ export default async function BookDetailPage({ params }: PageProps) {
               <BookActions
                 bookId={book.id}
                 bookTitle={book.title}
+                coverImageUrl={book.coverImageUrl}
                 canBorrow={canBorrow}
                 isLoggedIn={!!session?.user}
                 hasActiveBorrow={!!borrow}

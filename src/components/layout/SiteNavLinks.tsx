@@ -6,6 +6,7 @@ import { cn } from "@/lib/cn";
 
 const publicLinks = [
   { href: "/books", label: "Catalog" },
+  { href: "/my-book-pouch", label: "My Book Pouch" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
 ];

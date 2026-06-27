@@ -12,6 +12,7 @@ export type ReaderPanel = "toc" | "bookmarks" | "settings" | null;
 interface ReaderToolbarProps {
   bookId: string;
   bookTitle: string;
+  backHref: string;
   panel: ReaderPanel;
   onPanelChange: (panel: ReaderPanel) => void;
   prefs: ReaderPreferences;
@@ -32,6 +33,7 @@ interface ReaderToolbarProps {
 export function ReaderToolbar({
   bookId,
   bookTitle,
+  backHref,
   panel,
   onPanelChange,
   prefs,
@@ -73,7 +75,7 @@ export function ReaderToolbar({
           }}
         >
           <Link
-            href={`/books/${bookId}`}
+            href={backHref}
             className="max-w-[40%] truncate text-xs opacity-70 hover:opacity-100"
             title={bookTitle}
           >
@@ -156,7 +158,7 @@ export function ReaderToolbar({
         type="button"
         aria-label="Previous page"
         onClick={onPrev}
-        className="absolute top-1/2 z-30 flex -translate-y-1/2 items-center justify-center bg-amber-600 text-white shadow-lg transition active:scale-95 active:bg-amber-700 max-md:left-0 max-md:h-14 max-md:w-9 max-md:rounded-r-lg max-md:text-2xl md:left-3 md:h-12 md:w-12 md:rounded-full md:text-3xl md:hover:bg-amber-500"
+        className="absolute top-1/2 z-30 flex -translate-y-1/2 items-center justify-center bg-amber-600 text-white shadow-md transition active:scale-95 active:bg-amber-700 max-md:left-0 max-md:h-14 max-md:w-9 max-md:rounded-r-lg max-md:text-2xl md:left-2 md:h-9 md:w-9 md:rounded-full md:text-xl md:opacity-90 md:hover:bg-amber-500 md:hover:opacity-100"
       >
         ‹
       </button>
@@ -164,7 +166,7 @@ export function ReaderToolbar({
         type="button"
         aria-label="Next page"
         onClick={onNext}
-        className="absolute top-1/2 z-30 flex -translate-y-1/2 items-center justify-center bg-amber-600 text-white shadow-lg transition active:scale-95 active:bg-amber-700 max-md:right-0 max-md:h-14 max-md:w-9 max-md:rounded-l-lg max-md:text-2xl md:right-3 md:h-12 md:w-12 md:rounded-full md:text-3xl md:hover:bg-amber-500"
+        className="absolute top-1/2 z-30 flex -translate-y-1/2 items-center justify-center bg-amber-600 text-white shadow-md transition active:scale-95 active:bg-amber-700 max-md:right-0 max-md:h-14 max-md:w-9 max-md:rounded-l-lg max-md:text-2xl md:right-2 md:h-9 md:w-9 md:rounded-full md:text-xl md:opacity-90 md:hover:bg-amber-500 md:hover:opacity-100"
       >
         ›
       </button>

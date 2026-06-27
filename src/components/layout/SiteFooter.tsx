@@ -5,6 +5,7 @@ import { SiteLogo } from "./SiteLogo";
 const footerLinks = {
   library: [
     { href: "/books", label: "Catalog" },
+    { href: "/my-book-pouch", label: "My Book Pouch" },
     { href: "/login", label: "Member sign in" },
     { href: "/borrow-policy", label: "Borrowing policy" },
   ],

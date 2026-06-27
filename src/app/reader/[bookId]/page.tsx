@@ -13,7 +13,7 @@ import {
   isOfflineCopyReady,
   type BorrowHandshake,
 } from "@/lib/offline/borrow-manager";
-import { countOfflineChunks, getStoredBook } from "@/lib/offline/idb";
+import { countOfflineChunks, getStoredBook, saveBookMeta } from "@/lib/offline/idb";
 
 type PageProps = { params: Promise<{ bookId: string }> };
 
@@ -107,12 +107,16 @@ export default function ReaderPage({ params }: PageProps) {
       const chunkCount = stored ? await countOfflineChunks(bookId!) : 0;
 
       if (stored && isOfflineCopyReady(stored, handshake, chunkCount)) {
+        if (detail.book.coverImageUrl && stored.coverImageUrl !== detail.book.coverImageUrl) {
+          await saveBookMeta({ ...stored, coverImageUrl: detail.book.coverImageUrl });
+        }
         return;
       }
 
       setLoading(true);
       await downloadBookForOffline(bookId!, handshake, detail.book.title, {
         signal,
+        coverImageUrl: detail.book.coverImageUrl,
         onProgress: (pct) => {
           if (!cancelled) setDownloadProgress(pct);
         },
@@ -132,6 +136,9 @@ export default function ReaderPage({ params }: PageProps) {
 
       if (stored && isOfflineCopyReady(stored, handshake, chunkCount)) {
         setExpiresAt(handshake.borrow.expiresAt);
+        if (detail.book.coverImageUrl && stored.coverImageUrl !== detail.book.coverImageUrl) {
+          await saveBookMeta({ ...stored, coverImageUrl: detail.book.coverImageUrl });
+        }
         return;
       }
 
@@ -141,7 +148,10 @@ export default function ReaderPage({ params }: PageProps) {
 
       setBookTitle(detail.book.title);
       setExpiresAt(handshake.borrow.expiresAt);
-      await downloadBookForOffline(bookId!, handshake, detail.book.title, { signal });
+      await downloadBookForOffline(bookId!, handshake, detail.book.title, {
+        signal,
+        coverImageUrl: detail.book.coverImageUrl,
+      });
     }
 
     void init();

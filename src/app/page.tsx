@@ -55,6 +55,12 @@ export default function HomePage() {
               Member sign in
             </Link>
             <Link
+              href="/my-book-pouch"
+              className="rounded-lg border border-stone-300 bg-white px-5 py-3 text-sm font-medium text-stone-800 shadow-sm transition hover:bg-stone-50"
+            >
+              My Book Pouch
+            </Link>
+            <Link
               href="/about"
               className="rounded-lg px-5 py-3 text-sm font-medium text-amber-800 transition hover:bg-amber-50"
             >

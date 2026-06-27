@@ -16,6 +16,8 @@ export interface StoredBookMeta {
   chunkKeyMaterial: string;
   ivSeed: string;
   downloadedAt: string;
+  /** Cached for My Book Pouch display */
+  coverImageUrl?: string;
 }
 
 export interface StoredChunk {
@@ -119,6 +121,11 @@ export async function getStoredBook(
 ): Promise<StoredBookMeta | undefined> {
   const db = await getOfflineDB();
   return db.get("books", bookId);
+}
+
+export async function listStoredBooks(): Promise<StoredBookMeta[]> {
+  const db = await getOfflineDB();
+  return db.getAll("books");
 }
 
 export async function saveBookMeta(meta: StoredBookMeta): Promise<void> {

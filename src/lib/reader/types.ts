@@ -47,5 +47,8 @@ export const READER_OFFLINE_BANNER = "1.5rem";
 /** Side gutter for mobile page-turn buttons (keeps text clear of controls) */
 export const READER_SIDE_GUTTER = "2.25rem";
 
+/** Side gutter on desktop — keeps page-turn buttons off the text column */
+export const READER_DESKTOP_SIDE_GUTTER = "3.5rem";
+
 /** Viewport width at which two-page spread is enabled */
 export const READER_SPREAD_MIN_WIDTH = 768;

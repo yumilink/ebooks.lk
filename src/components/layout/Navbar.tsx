@@ -11,6 +11,7 @@ const navLinks: Array<{
   roles?: Role[];
 }> = [
   { href: "/books", label: "Catalog" },
+  { href: "/my-book-pouch", label: "My Book Pouch" },
   { href: "/author/upload", label: "Upload", roles: ["AUTHOR", "ADMIN"] },
   { href: "/author/dashboard", label: "Earnings", roles: ["AUTHOR", "ADMIN"] },
   { href: "/admin/settings", label: "Settings", roles: ["ADMIN"] },

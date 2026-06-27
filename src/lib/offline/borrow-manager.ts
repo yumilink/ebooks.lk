@@ -36,6 +36,7 @@ export interface BorrowHandshake {
 export interface DownloadOptions {
   signal?: AbortSignal;
   onProgress?: (pct: number) => void;
+  coverImageUrl?: string;
 }
 
 const activeDownloads = new Map<string, Promise<void>>();
@@ -159,7 +160,7 @@ async function downloadBookForOfflineImpl(
   bookId: string,
   handshake: BorrowHandshake,
   title: string,
-  { signal, onProgress }: DownloadOptions
+  { signal, onProgress, coverImageUrl }: DownloadOptions
 ): Promise<void> {
   onProgress?.(0);
 
@@ -193,6 +194,7 @@ async function downloadBookForOfflineImpl(
     chunkKeyMaterial: handshake.crypto.chunkKeyMaterial,
     ivSeed: handshake.crypto.ivSeed,
     downloadedAt: new Date().toISOString(),
+    ...(coverImageUrl ? { coverImageUrl } : {}),
   };
 
   await saveBookMeta(meta);

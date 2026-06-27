@@ -28,6 +28,7 @@ import { progressFromLocation, progressToFraction } from "@/lib/reader/progress"
 import { measureReaderContainer, resizeRendition } from "@/lib/reader/resize";
 import type { ReaderBookmark, ReaderPreferences, TocEntry } from "@/lib/reader/types";
 import {
+  READER_DESKTOP_SIDE_GUTTER,
   READER_OFFLINE_BANNER,
   READER_TOP_CHROME,
   READER_SPREAD_MIN_WIDTH,
@@ -80,6 +81,7 @@ export function EpubReader({ bookId, bookTitle, expiresAt, offlineFirst, onExpir
   const contentTop = `calc(${READER_TOP_CHROME} + ${
     isNetworkOffline ? READER_OFFLINE_BANNER : "0px"
   } + env(safe-area-inset-top, 0px))`;
+  const backHref = isNetworkOffline ? "/my-book-pouch" : `/books/${bookId}`;
 
   useEffect(() => {
     const sync = () => setIsNetworkOffline(!navigator.onLine);
@@ -449,6 +451,7 @@ export function EpubReader({ bookId, bookTitle, expiresAt, offlineFirst, onExpir
         <ReaderToolbar
           bookId={bookId}
           bookTitle={bookTitle}
+          backHref={backHref}
           panel={panel}
           onPanelChange={setPanel}
           prefs={prefs}
@@ -485,7 +488,7 @@ export function EpubReader({ bookId, bookTitle, expiresAt, offlineFirst, onExpir
       <div className="relative min-h-0 flex-1">
         <div
           ref={containerRef}
-          className="ereader-container absolute bottom-0 select-none max-md:left-9 max-md:right-9 md:inset-x-0"
+          className="ereader-container absolute bottom-0 select-none max-md:left-9 max-md:right-9 md:left-[var(--reader-desktop-gutter)] md:right-[var(--reader-desktop-gutter)]"
           onContextMenu={blockRip}
           onCopy={blockRip}
           onCut={blockRip}
@@ -496,6 +499,7 @@ export function EpubReader({ bookId, bookTitle, expiresAt, offlineFirst, onExpir
             WebkitUserSelect: "none",
             background: chrome.shell,
             ["--reader-bg" as string]: chrome.shell,
+            ["--reader-desktop-gutter" as string]: READER_DESKTOP_SIDE_GUTTER,
           }}
         />
       </div>
