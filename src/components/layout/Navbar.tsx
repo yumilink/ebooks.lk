@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { getSession } from "@/lib/session";
 import { SignOutButton } from "./SignOutButton";
+import { SiteLogo } from "./SiteLogo";
+import { MobileNavMenu, SiteNavLinks } from "./SiteNavLinks";
 import type { Role } from "@prisma/client";
 
 const navLinks: Array<{
@@ -19,13 +21,13 @@ export async function Navbar() {
   const role = session?.user?.role;
 
   return (
-    <header className="border-b border-stone-200 bg-white/80 backdrop-blur-sm">
+    <header className="relative border-b border-stone-200/80 bg-white/90 backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4">
-        <Link href="/" className="text-lg font-semibold tracking-tight text-stone-900">
-          Ebooks<span className="text-amber-700">.lk</span>
-        </Link>
+        <SiteLogo />
 
-        <nav className="hidden items-center gap-1 sm:flex">
+        <SiteNavLinks className="hidden sm:flex" />
+
+        <nav className="hidden items-center gap-1 md:flex">
           {navLinks
             .filter((link) => !link.roles || (role && link.roles.includes(role)))
             .map((link) => (
@@ -39,7 +41,8 @@ export async function Navbar() {
             ))}
         </nav>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <MobileNavMenu />
           {session?.user ? (
             <>
               <div className="hidden text-right sm:block">

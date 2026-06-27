@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { SITE_NAME } from "@/lib/brand";
 import { isSecureCryptoContext } from "@/lib/crypto/secure-context";
 
 const DISMISS_KEY = "ebooks-lk-pwa-install-dismissed";
@@ -83,7 +84,7 @@ export function PwaInstallPrompt() {
     >
       <div className="mx-auto flex max-w-6xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="font-medium">Install Ebooks.lk on your device</p>
+          <p className="font-medium">Install {SITE_NAME} on your device</p>
           {iosHint ? (
             <p className="mt-1 text-xs text-amber-900/80">
               Tap the <strong>Share</strong> button in Safari, then{" "}

@@ -4,6 +4,7 @@ import { PwaBootstrap } from "@/components/PwaBootstrap";
 import { RegisterPwa } from "@/components/RegisterPwa";
 import { AuthSessionProvider } from "@/components/providers/SessionProvider";
 import { AppShell } from "@/components/layout/AppShell";
+import { SITE_NAME, SITE_TAGLINE } from "@/lib/brand";
 import "./globals.css";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
@@ -13,8 +14,8 @@ const isDev = process.env.NODE_ENV === "development";
 const pwaEnabledInDev = process.env.NEXT_PUBLIC_ENABLE_PWA === "true";
 
 export const metadata: Metadata = {
-  title: "Ebooks.lk — Digital Library",
-  description: "Secure library-style ebook borrowing platform",
+  title: `${SITE_NAME} — Digital Library`,
+  description: SITE_TAGLINE,
   icons: {
     icon: [
       { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
@@ -28,7 +29,7 @@ export const metadata: Metadata = {
         appleWebApp: {
           capable: true,
           statusBarStyle: "default",
-          title: "Ebooks.lk",
+          title: SITE_NAME,
         },
       }
     : {}),
