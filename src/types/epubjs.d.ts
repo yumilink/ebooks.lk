@@ -47,6 +47,7 @@ declare module "epubjs" {
     display(target?: string | number): Promise<void>;
     next(): Promise<void>;
     prev(): Promise<void>;
+    reportLocation(): Promise<void>;
     currentLocation(): {
       start: {
         cfi: string;

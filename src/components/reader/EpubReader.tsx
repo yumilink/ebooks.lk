@@ -24,7 +24,7 @@ import {
   scheduleReadingPositionSync,
   syncReadingPositionToServer,
 } from "@/lib/reader/position";
-import { PageTurnQueue } from "@/lib/reader/page-turn";
+import { PageTurnQueue, safeTurnPage } from "@/lib/reader/page-turn";
 import { progressFromLocation, progressToFraction } from "@/lib/reader/progress";
 import { measureReaderContainer, resizeRendition } from "@/lib/reader/resize";
 import type { ReaderBookmark, ReaderPreferences, TocEntry } from "@/lib/reader/types";
@@ -198,7 +198,7 @@ export function EpubReader({ bookId, bookTitle, expiresAt, offlineFirst, onExpir
         attachReaderContentHooks(rendition, () => prefsRef.current.theme);
 
         pageTurnRef.current.bind((direction) => {
-          void (direction === "next" ? rendition.next() : rendition.prev());
+          void safeTurnPage(rendition, direction);
         });
 
         rendition.on(
