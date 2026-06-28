@@ -24,6 +24,7 @@ import {
   scheduleReadingPositionSync,
   syncReadingPositionToServer,
 } from "@/lib/reader/position";
+import { PageTurnQueue } from "@/lib/reader/page-turn";
 import { progressFromLocation, progressToFraction } from "@/lib/reader/progress";
 import { measureReaderContainer, resizeRendition } from "@/lib/reader/resize";
 import type { ReaderBookmark, ReaderPreferences, TocEntry } from "@/lib/reader/types";
@@ -61,6 +62,7 @@ export function EpubReader({ bookId, bookTitle, expiresAt, offlineFirst, onExpir
   const sessionStartRef = useRef<number>(Date.now());
   const initialFlowRef = useRef<string | null>(null);
   const prefsRef = useRef<ReaderPreferences>(loadReaderPreferences());
+  const pageTurnRef = useRef(new PageTurnQueue());
 
   const [remaining, setRemaining] = useState(
     () => new Date(expiresAt).getTime() - Date.now()
@@ -195,6 +197,10 @@ export function EpubReader({ bookId, bookTitle, expiresAt, offlineFirst, onExpir
         applyReaderTheme(rendition.themes, loadedPrefs);
         attachReaderContentHooks(rendition, () => prefsRef.current.theme);
 
+        pageTurnRef.current.bind((direction) => {
+          void (direction === "next" ? rendition.next() : rendition.prev());
+        });
+
         rendition.on(
           "relocated",
           (location: {
@@ -205,6 +211,8 @@ export function EpubReader({ bookId, bookTitle, expiresAt, offlineFirst, onExpir
               displayed?: { page: number; total: number };
             };
           }) => {
+            pageTurnRef.current.onRelocated();
+
             let pct = progressFromLocation(location);
             if (pct === 0 && bookRef.current?.locations) {
               try {
@@ -272,6 +280,7 @@ export function EpubReader({ bookId, bookTitle, expiresAt, offlineFirst, onExpir
 
     return () => {
       cancelled = true;
+      pageTurnRef.current.reset();
       renditionRef.current?.destroy();
       renditionRef.current = null;
     };
@@ -370,11 +379,11 @@ export function EpubReader({ bookId, bookTitle, expiresAt, offlineFirst, onExpir
   }, []);
 
   const goNext = useCallback(() => {
-    void renditionRef.current?.next();
+    pageTurnRef.current.request("next");
   }, []);
 
   const goPrev = useCallback(() => {
-    void renditionRef.current?.prev();
+    pageTurnRef.current.request("prev");
   }, []);
 
   useEffect(() => {
